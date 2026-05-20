@@ -15,7 +15,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install CUDA Toolkit 13.1
-        uses: Jimver/cuda-toolkit@v0.2.16
+        uses: Jimver/cuda-toolkit@v0.2.35
         with:
           cuda: '13.1.0'
           # 可选：如果遇到网络问题，可以将下方的注释打开，精简下载体积
