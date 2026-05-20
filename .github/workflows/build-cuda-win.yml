@@ -17,10 +17,6 @@ on:
         type: string
         default: '61;75;86;89;120'
 
-env:
-  # 提前消除 Node.js 20 弃用警告
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   build-windows:
     name: Windows CUDA ${{ inputs.cuda_version }}
@@ -43,13 +39,14 @@ jobs:
 
       - name: Build
         run: |
-          cmake --build build --config Release --parallel
+          # 仅指定编译 llama-server 和 llama-cli，其余的几十个工具全部跳过
+          cmake --build build --config Release --target llama-server llama-cli --parallel
 
       - name: Upload Binaries
         uses: actions/upload-artifact@v4
         with:
           # 产物包的名字会动态带上 CUDA 版本号
-          name: llamacpp-tq-cuda${{ inputs.cuda_version }}-win64
+          name: llamacpp-turboquant-cuda${{ inputs.cuda_version }}-win64
           path: |
             build/bin/Release/*.exe
             build/bin/Release/*.dll
