@@ -1,8 +1,6 @@
 name: Build Llama.cpp (CUDA 13.1)
 
 on:
-  push:
-    branches: [ "feature/turboquant-merge", "main", "master" ]
   workflow_dispatch:
 
 jobs:

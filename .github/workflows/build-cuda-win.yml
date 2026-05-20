@@ -1,42 +1,56 @@
-name: Build Windows CUDA 13.1
+name: Build Llama.cpp (Windows CUDA)
 
 on:
-  push:
-    branches: [ "feature/turboquant-merge", "master", "main" ]
+  # 仅保留 workflow_dispatch，取消 push 自动触发
   workflow_dispatch:
+    inputs:
+      cuda_version:
+        description: 'CUDA Toolkit Version (建议与官方提供的 DLL 压缩包版本对齐)'
+        required: true
+        type: choice
+        options:
+          - '13.1.0'
+          - '12.4.1'
+        default: '13.1.0'
+      cuda_arch:
+        description: 'CUDA 架构 (61=10系, 75=20/16系, 86=30系, 89=40系, 120=50系)'
+        required: true
+        type: string
+        default: '61;75;86;89;120'
+
+env:
+  # 提前消除 Node.js 20 弃用警告
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   build-windows:
-    name: Build Windows CUDA 13.1
+    name: Windows CUDA ${{ inputs.cuda_version }}
     runs-on: windows-2022
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install CUDA Toolkit 13.1
+      - name: Install CUDA Toolkit
         uses: Jimver/cuda-toolkit@v0.2.35
         with:
-          cuda: '13.1.0'
-          # 可选：如果遇到网络问题，可以将下方的注释打开，精简下载体积
-          # method: 'network'
-          # sub-packages: '["nvcc", "cudart", "cublas", "cublas-dev"]'
+          # 直接读取下拉菜单选择的版本
+          cuda: '${{ inputs.cuda_version }}'
 
       - name: Configure CMake
-        # Windows 下默认使用 MSVC (Visual Studio) 编译器
         run: |
-          cmake -B build -DGGML_CUDA=ON -DCMAKE_BUILD_TYPE=Release
+          # 注入所选的显卡架构参数
+          cmake -B build -DGGML_CUDA=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_CUDA_ARCHITECTURES="${{ inputs.cuda_arch }}"
 
       - name: Build
-        # 使用 --parallel 自动利用所有 CPU 核心加速编译
         run: |
           cmake --build build --config Release --parallel
 
       - name: Upload Binaries
         uses: actions/upload-artifact@v4
         with:
-          name: llamacpp-turboquant-cuda13.1-win64
-          # 注意：Windows MSVC 编译器的产物会默认放在 Release 子目录下
+          # 产物包的名字会动态带上 CUDA 版本号
+          name: llamacpp-tq-cuda${{ inputs.cuda_version }}-win64
           path: |
             build/bin/Release/*.exe
             build/bin/Release/*.dll
