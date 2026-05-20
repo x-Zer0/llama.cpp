@@ -1,0 +1,43 @@
+name: Build Windows CUDA 13.1
+
+on:
+  push:
+    branches: [ "feature/turboquant-merge", "master", "main" ]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    name: Build Windows CUDA 13.1
+    runs-on: windows-2022
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install CUDA Toolkit 13.1
+        uses: Jimver/cuda-toolkit@v0.2.16
+        with:
+          cuda: '13.1.0'
+          # 可选：如果遇到网络问题，可以将下方的注释打开，精简下载体积
+          # method: 'network'
+          # sub-packages: '["nvcc", "cudart", "cublas", "cublas-dev"]'
+
+      - name: Configure CMake
+        # Windows 下默认使用 MSVC (Visual Studio) 编译器
+        run: |
+          cmake -B build -DGGML_CUDA=ON -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        # 使用 --parallel 自动利用所有 CPU 核心加速编译
+        run: |
+          cmake --build build --config Release --parallel
+
+      - name: Upload Binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: llamacpp-turboquant-cuda13.1-win64
+          # 注意：Windows MSVC 编译器的产物会默认放在 Release 子目录下
+          path: |
+            build/bin/Release/*.exe
+            build/bin/Release/*.dll
+          retention-days: 7
